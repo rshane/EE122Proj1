@@ -16,37 +16,8 @@ This is a skeleton sender class. Create a fantastic transport protocol here.
 
 class Sender(BasicSender.BasicSender):
     # Main sending loop.
-    def handle_response(self,response_packet):
-        if Checksum.validate_checksum(response_packet):
-            print "recv: %s" % response_packet
-        else:
-            print "recv: %s <--- CHECKSUM FAILED" % response_packet
-    
     def start(self):
-        seqno = 0
-        msg = self.infile.read(500)
-        msg_type = None
-        while not msg_type == 'end':
-            next_msg = self.infile.read(500)
-
-            msg_type = 'data'
-            if seqno == 0:
-                msg_type = 'start'
-            elif next_msg == "":
-                msg_type = 'end'
-            
-            packet = self.make_packet(msg_type,seqno,msg)
-            self.send(packet)
-            print "sent: %s" % packet
-
-            response = self.receive()
-            self.handle_response(response)
-
-            msg = next_msg
-            seqno += 1
-
-        self.infile.close()
-
+        raise NotImplementedError
 
 '''
 This will be run if you run this script from the command line. You should not
