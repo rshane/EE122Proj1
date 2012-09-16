@@ -4,8 +4,12 @@ import getopt
 import Checksum
 import BasicSender
 
-TIMEOUT = 0.5
-DEBUG   = 0
+import Queue
+
+TIMEOUT     = 0.5 # in seconds
+DEBUG       = 0
+MSG_SIZE    = 500 # in bytes
+WINDOW_SIZE = 5
 '''
 This is a skeleton sender class. Create a fantastic transport protocol here.
 '''
@@ -27,11 +31,12 @@ class Sender(BasicSender.BasicSender):
             return 0
     
     def start(self):
+        window = Queue.Queue(5)
         seqno = 0
-        msg = self.infile.read(500)
+        msg = self.infile.read(MSG_SIZE)
         msg_type = None
         while not msg_type == 'end':
-            next_msg = self.infile.read(500)
+            next_msg = self.infile.read(MSG_SIZE)
 
             msg_type = 'data'
             if seqno == 0:
@@ -40,6 +45,12 @@ class Sender(BasicSender.BasicSender):
                 msg_type = 'end'
             
             packet = self.make_packet(msg_type,seqno,msg)
+            try:
+                window.put(packet)
+            except Full:
+                #need to FINISH THIS
+                #making sliding window
+                
             self.send(packet)
             if DEBUG:
                 print "sent: %s" % packet
