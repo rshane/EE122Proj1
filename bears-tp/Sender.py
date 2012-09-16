@@ -4,6 +4,8 @@ import getopt
 import Checksum
 import BasicSender
 
+TIMEOUT = 0.5
+DEBUG   = 0
 '''
 This is a skeleton sender class. Create a fantastic transport protocol here.
 '''
@@ -19,8 +21,10 @@ class Sender(BasicSender.BasicSender):
     def handle_response(self,response_packet):
         if Checksum.validate_checksum(response_packet):
             print "recv: %s" % response_packet
+            return 1
         else:
             print "recv: %s <--- CHECKSUM FAILED" % response_packet
+            return 0
     
     def start(self):
         seqno = 0
@@ -37,13 +41,30 @@ class Sender(BasicSender.BasicSender):
             
             packet = self.make_packet(msg_type,seqno,msg)
             self.send(packet)
-            print "sent: %s" % packet
+            if DEBUG:
+                print "sent: %s" % packet
 
-            response = self.receive()
-            self.handle_response(response)
+            response = self.receive(TIMEOUT)
+            if response != None:
+                response_type = response[0]
+                response_no = response[1]
 
+            valid = self.handle_response(response)
+
+            # Send every TIMEOUT until ACK is received
+            # only stop go; CHECK SEQNO OF RESPONSE
+            # AND PACKETS IN ORDER
+            
+            while not valid or response == None:
+                if DEBUG:
+                    import pdb; pdb.set_trace()
+                self.send(packet)
+                response = self.receive(TIMEOUT)
+                valid = self.handle_response(response)
+                
             msg = next_msg
             seqno += 1
+                
 
         self.infile.close()
 
