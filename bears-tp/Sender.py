@@ -71,6 +71,8 @@ class Sender(BasicSender.BasicSender):
 
         
                 #Need take care when window full and packets not received
+                #maybe proper way to check the diff between when finish receiving all the packets vs. when window is full would be
+                #to check if ele == window_size
         
                 # if DEBUG:
                 #     print "sent: %s" % packet
