@@ -4,6 +4,10 @@ import getopt
 import Checksum
 import BasicSender
 
+TIMEOUT     = 0.5 # in seconds
+DEBUG       = 1
+MSG_SIZE    = 500 # in bytes
+WINDOW_SIZE = 5
 '''
 This is a skeleton sender class. Create a fantastic transport protocol here.
 '''
@@ -16,8 +20,78 @@ This is a skeleton sender class. Create a fantastic transport protocol here.
 
 class Sender(BasicSender.BasicSender):
     # Main sending loop.
+    def handle_response(self,response_packet):
+        if Checksum.validate_checksum(response_packet):
+            print "recv: %s" % response_packet
+            return 1
+        else:
+            print "recv: %s <--- CHECKSUM FAILED" % response_packet
+            return 0
+    
     def start(self):
-        raise NotImplementedError
+        window = {}
+        i = 0
+        response = None
+        #starting with 1 so when we get ack can just match ack to seqno to know if can go on
+        seqno = 1
+        msg = self.infile.read(MSG_SIZE)
+        msg_type = None
+        while i < WINDOW_SIZE:
+            if  msg_type != 'end':
+                next_msg = self.infile.read(MSG_SIZE)
+                msg_type = 'data'
+                if seqno == 1: # changed from 0
+                    msg_type = 'start'
+                elif next_msg == "":
+                    msg_type = 'end'
+
+                if DEBUG:
+                    import pdb; pdb.set_trace()
+
+                    
+                packet = self.make_packet(msg_type,seqno,msg)
+                window[seqno] = packet
+                seqno         = seqno + 1
+                i             = i + 1
+                self.send(packet)
+                res = self.receive(TIMEOUT) 
+                if res != None: 
+                    response = res
+                    res_type = response[0] 
+                    res_no   = response[1]
+                    if res_type == 'ack':
+                        #iterate through resno-1 check if its in window
+                        #if it is del window[resno-1] cause that means it went through
+                        # decrement i
+                # if DEBUG:
+                #     print "sent: %s" % packet
+
+
+            #for array append any new packet set while loop limit to window size, then remove any proper acks
+            #recv: ack|12|1621908066            
+
+#----------Need to figure out how receiver accept many packets-----------        
+        if response != None:
+            response_type = response[0]
+            response_no = response[1]
+
+        valid = self.handle_response(response)
+
+        # Send every TIMEOUT until ACK is received
+        # only stop go; CHECK SEQNO OF RESPONSE
+        # AND PACKETS IN ORDER
+        
+        while not valid or response == None:
+            self.send(packet)
+            response = self.receive(TIMEOUT)
+            valid = self.handle_response(response)
+            
+        msg = next_msg
+        seqno += 1
+                
+
+        self.infile.close()
+
 
 '''
 This will be run if you run this script from the command line. You should not

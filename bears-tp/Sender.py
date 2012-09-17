@@ -4,10 +4,8 @@ import getopt
 import Checksum
 import BasicSender
 
-import Queue
-
 TIMEOUT     = 0.5 # in seconds
-DEBUG       = 0
+DEBUG       = 1
 MSG_SIZE    = 500 # in bytes
 WINDOW_SIZE = 5
 '''
@@ -31,50 +29,74 @@ class Sender(BasicSender.BasicSender):
             return 0
     
     def start(self):
-        window = Queue.Queue(5)
+        window = {}
+        ele = 0
+        response = None
         seqno = 0
         msg = self.infile.read(MSG_SIZE)
         msg_type = None
-        while not msg_type == 'end':
-            next_msg = self.infile.read(MSG_SIZE)
+        while ele < WINDOW_SIZE:
+            if  msg_type != 'end':
+                next_msg = self.infile.read(MSG_SIZE)
+                msg_type = 'data'
+                if seqno == 0:
+                    msg_type = 'start'
+                elif next_msg == "":
+                    msg_type = 'end'
 
-            msg_type = 'data'
-            if seqno == 0:
-                msg_type = 'start'
-            elif next_msg == "":
-                msg_type = 'end'
-            
-            packet = self.make_packet(msg_type,seqno,msg)
-            try:
-                window.put(packet)
-            except Full:
-                #need to FINISH THIS
-                #making sliding window
-                
-            self.send(packet)
-            if DEBUG:
-                print "sent: %s" % packet
-
-            response = self.receive(TIMEOUT)
-            if response != None:
-                response_type = response[0]
-                response_no = response[1]
-
-            valid = self.handle_response(response)
-
-            # Send every TIMEOUT until ACK is received
-            # only stop go; CHECK SEQNO OF RESPONSE
-            # AND PACKETS IN ORDER
-            
-            while not valid or response == None:
                 if DEBUG:
                     import pdb; pdb.set_trace()
+                                
+                packet = self.make_packet(msg_type,seqno,msg)
+                window[seqno] = packet
+                seqno         = seqno + 1
+                ele             = ele + 1
                 self.send(packet)
-                response = self.receive(TIMEOUT)
-                valid = self.handle_response(response)
-                
-            msg = next_msg
-            seqno += 1
+                                    
+                res = self.receive(TIMEOUT)
+                msg = next_msg
+
+                if res != None: 
+                    response = res
+                    res_type, res_no, res_msg, res_chk = self.split_packet(response)
+                    res_no = int(res_no)
+                    if res_type == 'ack':
+                        for i in range(res_no):
+                            if i in window:
+                                del window[i]
+                                ele = ele - 1
+                        if msg_type == 'end':
+                          break
+
+
+        
+                #Need take care when window full and packets not received
+        
+                # if DEBUG:
+                #     print "sent: %s" % packet
+
+
+            #for array append any new packet set while loop limit to window size, then remove any proper acks
+            #recv: ack|12|1621908066            
+
+#----------Need to figure out how receiver accept many packets-----------        
+        if response != None:
+            response_type = response[0]
+            response_no = response[1]
+
+        valid = self.handle_response(response)
+
+        # Send every TIMEOUT until ACK is received
+        # only stop go; CHECK SEQNO OF RESPONSE
+        # AND PACKETS IN ORDER
+        
+        while not valid or response == None:
+            self.send(packet)
+            response = self.receive(TIMEOUT)
+            valid = self.handle_response(response)
+            
+        msg = next_msg
+        seqno += 1
                 
 
         self.infile.close()
