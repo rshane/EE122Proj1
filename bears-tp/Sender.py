@@ -27,12 +27,15 @@ class Sender(BasicSender.BasicSender):
         else:
             print "recv: %s <--- CHECKSUM FAILED" % response_packet
             return 0
-    def sws(self, win, seqnum, e, mess_t): #sliding window send
+    def sws(self, win, seqnum, e, mess_t, nxt_mess): #sliding window send
         window   = win # {}
         ele      = e #0
         seqno    = seqnum # 0
         msg_type = mess_t
-        msg      = self.infile.read(MSG_SIZE)
+        if nxt_mess == None:
+            msg = self.infile.read(MSG_SIZE)
+        else:
+            msg = nxt_mess
         while ele < WINDOW_SIZE:
             if  msg_type != 'end':
                 next_msg  = self.infile.read(MSG_SIZE)
@@ -49,14 +52,14 @@ class Sender(BasicSender.BasicSender):
                 self.send(packet)
                 msg = next_msg
                 if msg_type == 'end':
-                    return window, seqno, ele, msg_type
-        return window, seqno, ele, msg_type
+                    return window, seqno, ele, msg_type, next_msg
+        return window, seqno, ele, msg_type, next_msg
     
-    def swr(self, win, e):
+    def swr(self, win, e): # sliding window receive
         window   = win
         ele      = e
         response = None   # COULD THERE BE A CASE WHERE RESPONSE IS NONE?????
-        for i in range(5):  
+        for i in range(WINDOW_SIZE):  
             res = self.receive(TIMEOUT)
             if res != None: 
                 response = res
@@ -77,11 +80,12 @@ class Sender(BasicSender.BasicSender):
         window   = {}
         seqno    = 0
         ele      = 0
-        msg_type = None
+        msg_type = nxt_msg = None
+        
         if DEBUG:
             import pdb; pdb.set_trace()                                
         while msg_type != 'end':
-            window, seqno, ele, msg_type = self.sws(window, seqno, ele, msg_type)
+            window, seqno, ele, msg_type, nxt_msg = self.sws(window, seqno, ele, msg_type, nxt_msg)
             window, ele        = self.swr(window, ele)
         self.infile.close()
                 # if DEBUG:
