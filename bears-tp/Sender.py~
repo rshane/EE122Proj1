@@ -30,39 +30,50 @@ class Sender(BasicSender.BasicSender):
     
     def start(self):
         window = {}
-        i = 0
+        ele = 0
         response = None
-        #starting with 1 so when we get ack can just match ack to seqno to know if can go on
-        seqno = 1
+        seqno = 0
         msg = self.infile.read(MSG_SIZE)
         msg_type = None
-        while i < WINDOW_SIZE:
+        while ele < WINDOW_SIZE:
             if  msg_type != 'end':
                 next_msg = self.infile.read(MSG_SIZE)
                 msg_type = 'data'
-                if seqno == 1: # changed from 0
+                if seqno == 0:
                     msg_type = 'start'
                 elif next_msg == "":
                     msg_type = 'end'
 
                 if DEBUG:
                     import pdb; pdb.set_trace()
-
-                    
+                                
                 packet = self.make_packet(msg_type,seqno,msg)
                 window[seqno] = packet
                 seqno         = seqno + 1
-                i             = i + 1
+                ele             = ele + 1
                 self.send(packet)
-                res = self.receive(TIMEOUT) 
+                                    
+                res = self.receive(TIMEOUT)
+                msg = next_msg
+
                 if res != None: 
                     response = res
-                    res_type = response[0] 
-                    res_no   = response[1]
+                    res_type, res_no, res_msg, res_chk = self.split_packet(response)
+                    res_no = int(res_no)
                     if res_type == 'ack':
-                        #iterate through resno-1 check if its in window
-                        #if it is del window[resno-1] cause that means it went through
-                        # decrement i
+                        for i in range(res_no):
+                            if i in window:
+                                del window[i]
+                                ele = ele - 1
+                        if msg_type == 'end':
+                          break
+
+
+        
+                #Need take care when window full and packets not received
+                #maybe proper way to check the diff between when finish receiving all the packets vs. when window is full would be
+                #to check if ele == window_size
+        
                 # if DEBUG:
                 #     print "sent: %s" % packet
 

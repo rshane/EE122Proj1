@@ -27,53 +27,63 @@ class Sender(BasicSender.BasicSender):
         else:
             print "recv: %s <--- CHECKSUM FAILED" % response_packet
             return 0
-    
-    def start(self):
-        window = {}
-        ele = 0
-        response = None
-        seqno = 0
-        msg = self.infile.read(MSG_SIZE)
-        msg_type = None
+    def sws(self, win, seqnum, e, mess_t): #sliding window send
+        window   = win # {}
+        ele      = e #0
+        seqno    = seqnum # 0
+        msg_type = mess_t
+        msg      = self.infile.read(MSG_SIZE)
         while ele < WINDOW_SIZE:
             if  msg_type != 'end':
-                next_msg = self.infile.read(MSG_SIZE)
-                msg_type = 'data'
+                next_msg  = self.infile.read(MSG_SIZE)
+                msg_type  = 'data'
                 if seqno == 0:
                     msg_type = 'start'
                 elif next_msg == "":
-                    msg_type = 'end'
+                    msg_type  = 'end'
 
-                if DEBUG:
-                    import pdb; pdb.set_trace()
-                                
-                packet = self.make_packet(msg_type,seqno,msg)
+                packet        = self.make_packet(msg_type,seqno,msg)
                 window[seqno] = packet
                 seqno         = seqno + 1
-                ele             = ele + 1
+                ele           = ele + 1
                 self.send(packet)
-                                    
-                res = self.receive(TIMEOUT)
                 msg = next_msg
-
-                if res != None: 
-                    response = res
-                    res_type, res_no, res_msg, res_chk = self.split_packet(response)
-                    res_no = int(res_no)
-                    if res_type == 'ack':
-                        for i in range(res_no):
-                            if i in window:
-                                del window[i]
-                                ele = ele - 1
-                        if msg_type == 'end':
-                          break
-
-
+                if msg_type == 'end':
+                    return window, seqno, ele, msg_type
+        return window, seqno, ele, msg_type
+    
+    def swr(self, win, e):
+        window   = win
+        ele      = e
+        response = None   # COULD THERE BE A CASE WHERE RESPONSE IS NONE?????
+        for i in range(5):  
+            res = self.receive(TIMEOUT)
+            if res != None: 
+                response = res
+        if response != None:
+            res_type, res_no, res_msg, res_chk = self.split_packet(response)
+            res_no = int(res_no) 
+            if res_type == 'ack':
+                for i in range(res_no):
+                    if i in window:
+                        del window[i]
+                        ele = ele - 1
+        return window, ele
+                        
         
-                #Need take care when window full and packets not received
-                #maybe proper way to check the diff between when finish receiving all the packets vs. when window is full would be
-                #to check if ele == window_size
-        
+    
+
+    def start(self):
+        window   = {}
+        seqno    = 0
+        ele      = 0
+        msg_type = None
+        if DEBUG:
+            import pdb; pdb.set_trace()                                
+        while msg_type != 'end':
+            window, seqno, ele, msg_type = self.sws(window, seqno, ele, msg_type)
+            window, ele        = self.swr(window, ele)
+        self.infile.close()
                 # if DEBUG:
                 #     print "sent: %s" % packet
 
@@ -82,6 +92,7 @@ class Sender(BasicSender.BasicSender):
             #recv: ack|12|1621908066            
 
 #----------Need to figure out how receiver accept many packets-----------        
+'''
         if response != None:
             response_type = response[0]
             response_no = response[1]
@@ -99,9 +110,9 @@ class Sender(BasicSender.BasicSender):
             
         msg = next_msg
         seqno += 1
-                
+'''                
 
-        self.infile.close()
+
 
 
 '''
