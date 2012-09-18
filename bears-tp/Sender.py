@@ -27,16 +27,16 @@ class Sender(BasicSender.BasicSender):
         else:
             print "recv: %s <--- CHECKSUM FAILED" % response_packet
             return 0
-    def sws(self, win, seqnum, e, mess_t, nxt_mess): #sliding window send
-        window   = win # {}
-        ele      = e #0
+    def sws(self, win, seqnum, mess_t, nxt_mess): #sliding window send
+        window   = win
         seqno    = seqnum # 0
         msg_type = mess_t
+        next_msg = None
         if nxt_mess == None:
             msg = self.infile.read(MSG_SIZE)
         else:
             msg = nxt_mess
-        while ele < WINDOW_SIZE:
+        while len(window) < WINDOW_SIZE:
             if  msg_type != 'end':
                 next_msg  = self.infile.read(MSG_SIZE)
                 msg_type  = 'data'
@@ -48,16 +48,18 @@ class Sender(BasicSender.BasicSender):
                 packet        = self.make_packet(msg_type,seqno,msg)
                 window[seqno] = packet
                 seqno         = seqno + 1
-                ele           = ele + 1
-                self.send(packet)
-                msg = next_msg
                 if msg_type == 'end':
-                    return window, seqno, ele, msg_type, next_msg
-        return window, seqno, ele, msg_type, next_msg
+                    break
+                msg = next_msg
+                
+        for key in window:
+            packet = window[key]
+            self.send(packet)
+
+        return window, seqno, msg_type, next_msg
     
-    def swr(self, win, e): # sliding window receive
+    def swr(self, win): # sliding window receive
         window   = win
-        ele      = e
         response = None   # COULD THERE BE A CASE WHERE RESPONSE IS NONE?????
         for i in range(WINDOW_SIZE):  
             res = self.receive(TIMEOUT)
@@ -70,8 +72,7 @@ class Sender(BasicSender.BasicSender):
                 for i in range(res_no):
                     if i in window:
                         del window[i]
-                        ele = ele - 1
-        return window, ele
+        return window
                         
         
     
@@ -85,8 +86,8 @@ class Sender(BasicSender.BasicSender):
         if DEBUG:
             import pdb; pdb.set_trace()                                
         while msg_type != 'end':
-            window, seqno, ele, msg_type, nxt_msg = self.sws(window, seqno, ele, msg_type, nxt_msg)
-            window, ele        = self.swr(window, ele)
+            window, seqno, msg_type, nxt_msg = self.sws(window, seqno, msg_type, nxt_msg)
+            window                           = self.swr(window)
         self.infile.close()
                 # if DEBUG:
                 #     print "sent: %s" % packet
