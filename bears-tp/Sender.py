@@ -89,7 +89,7 @@ class Sender(BasicSender.BasicSender):
                 for i in range(res_no):
                     if i in window:
                         packet = window[i]
-                        if self.handle_response(packet):
+                        if True: #self.handle_response(packet):
                             del window[i]
         return window
                         

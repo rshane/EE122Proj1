@@ -10,10 +10,7 @@ class CorruptTest(BasicTest):
     def handle_packets(self):
         for p in self.forwarder.in_queue:
             if random.choice([True, False]):
-                new_packet = BasicSender.split_packet(p)
-                new_packet[3] = 0
-                corr_p=BasicSender.make_packet(new_packet)
-                self.forwarder.out_queue.append(corr_p)
+                p.update_packet(data="Sweet Baby Ray's", update_checksum=False)
             else:
                 self.forwarder.out_queue.append(p)
         #empty out in_queue
