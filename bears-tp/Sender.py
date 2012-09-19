@@ -5,7 +5,7 @@ import Checksum
 import BasicSender
 
 TIMEOUT     = 0.5 # in seconds
-DEBUG       = 1
+DEBUG       = 0
 MSG_SIZE    = 500 # in bytes
 WINDOW_SIZE = 5
 '''
@@ -36,27 +36,36 @@ class Sender(BasicSender.BasicSender):
             msg = self.infile.read(MSG_SIZE)
         else:
             msg = nxt_mess
-        while len(window) < WINDOW_SIZE:
+        while len(window) < WINDOW_SIZE and msg_type !='end':
+           
+           # if  msg_type != 'end': #can take out
+            next_msg  = self.infile.read(MSG_SIZE)
+            msg_type  = 'data'
+            if seqno == 0:
+                msg_type = 'start'
+            elif next_msg == "":
+                msg_type  = 'end'
+
+            packet        = self.make_packet(msg_type,seqno,msg)
+            window[seqno] = packet
             if DEBUG:
-                import pdb; pdb.set_trace()                                
+                print "windowkeys: " + str(window.keys())
+                print "seqno: "       + str(seqno)
+                print "msg_type: "    + msg_type
+                     
+                #import pdb; pdb.set_trace()                                
 
-            if  msg_type != 'end':
-                next_msg  = self.infile.read(MSG_SIZE)
-                msg_type  = 'data'
-                if seqno == 0:
-                    msg_type = 'start'
-                elif next_msg == "":
-                    msg_type  = 'end'
-
-                packet        = self.make_packet(msg_type,seqno,msg)
-                window[seqno] = packet
-                seqno         = seqno + 1
-                msg = next_msg
-                if msg_type == 'end':
-                    break
+            seqno         = seqno + 1
+            msg = next_msg
+            if msg_type == 'end':
+                break
                 
         for key in window:
             packet = window[key]
+            if DEBUG:
+                print "SENDING"
+                print "packet_num:" + str(key)
+
             self.send(packet)
 
         return window, seqno, msg_type, msg
@@ -71,6 +80,9 @@ class Sender(BasicSender.BasicSender):
         if response != None:
             res_type, res_no, res_msg, res_chk = self.split_packet(response)
             res_no = int(res_no) 
+            if DEBUG:
+                print "ReceivedUpTo: " + str(res_no - 1)
+
             if res_type == 'ack':
                 for i in range(res_no):
                     if i in window:
@@ -86,7 +98,7 @@ class Sender(BasicSender.BasicSender):
         ele      = 0
         msg_type = nxt_msg = None
         
-        while msg_type != 'end':
+        while msg_type != 'end' or len(window) != 0:
             window, seqno, msg_type, nxt_msg = self.sws(window, seqno, msg_type, nxt_msg)
             window                           = self.swr(window)
         self.infile.close()
