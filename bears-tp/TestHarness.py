@@ -15,10 +15,9 @@ you want to run. The tests automatically register themselves with the
 forwarder, so they will magically be run.
 """
 def tests_to_run(forwarder):
-    from tests import BasicTest, RandomDropTest, CorruptTest
+    from tests import BasicTest, RandomDropTest
     BasicTest.BasicTest(forwarder, "README")
     RandomDropTest.RandomDropTest(forwarder, "README")
-    CorruptTest.CorruptTest(forwarder, "README")
 
 """
 Testing is divided into two pieces: this forwarder and a set of test cases in
@@ -97,7 +96,7 @@ class Forwarder(object):
 
     def _send(self, packet):
         """ Send a packet. """
-        packet.update_packet(seqno=packet.seqno + self.start_seqno_base)
+        packet.update_packet(seqno=packet.seqno + self.start_seqno_base, update_checksum=False)
         self.sock.sendto(packet.full_packet, packet.address)
 
     def register_test(self, testcase, input_file):
@@ -130,14 +129,16 @@ class Forwarder(object):
                     self.sender_addr = address
                     self.test_state = "READY"
 
-        if address == self.receiver_addr:
-            p = Packet(message, self.sender_addr, self.start_seqno_base)
-        elif address == self.sender_addr:
-            p = Packet(message, self.receiver_addr, self.start_seqno_base)
-        else:
-            raise ValueError("Packet from unknown source: %s" % str(address))
-        self.in_queue.append(p)
-        self.current_test.handle_packet()
+        if self.test_state == "READY":
+            if address == self.receiver_addr:
+                p = Packet(message, self.sender_addr, self.start_seqno_base)
+            elif address == self.sender_addr:
+                p = Packet(message, self.receiver_addr, self.start_seqno_base)
+            else:
+                # Ignore packets from unknown sources
+                return
+            self.in_queue.append(p)
+            self.current_test.handle_packet()
 
     def start(self):
         self.test_state = "NEW"
@@ -176,7 +177,7 @@ class Forwarder(object):
           raise RuntimeError("No data received by receiver!")
         self.current_test.result(self.recv_outfile)
 
-class Packet():
+class Packet(object):
     def __init__(self, packet, address, start_seqno_base):
         self.full_packet = packet
         self.address = address # where the packet is destined to
@@ -202,6 +203,14 @@ class Packet():
             self.bogon = True
 
     def update_packet(self, msg_type=None, seqno=None, data=None, full_packet=None, update_checksum=True):
+        """
+        This function handles safely changing the contents of a packet. By
+        default, we re-compute the checksum every time the packet is updated.
+        However, you can disable this if you intend to create a corrupted
+        packet.
+
+        Note that the checksum is calculated over the NON-0-indexed sequence number.
+        """
         if not self.bogon:
             if msg_type == None:
                 msg_type = self.msg_type
@@ -210,12 +219,14 @@ class Packet():
             if data == None:
                 data = self.data
 
-            if data and len(data) > 0:
-                body = "%s|%d|%s|" % (msg_type,seqno,data)
-            else:
+            if msg_type == "ack": # doesn't have a data field, so handle separately
                 body = "%s|%d|" % (msg_type, seqno)
+                checksum_body = "%s|%d|" % (msg_type, seqno + self.start_seqno_base)
+            else:
+                body = "%s|%d|%s|" % (msg_type,seqno,data)
+                checksum_body = "%s|%d|%s|" % (msg_type, seqno + self.start_seqno_base, data)
             if update_checksum:
-                checksum = Checksum.generate_checksum(body)
+                checksum = Checksum.generate_checksum(checksum_body)
             else:
                 checksum = self.checksum
             self.msg_type = msg_type
