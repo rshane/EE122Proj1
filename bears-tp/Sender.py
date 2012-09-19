@@ -98,7 +98,7 @@ class Sender(BasicSender.BasicSender):
         ele      = 0
         msg_type = nxt_msg = None
         
-        while msg_type != 'end' or len(window) != 0:
+        while msg_type !='end' or len(window) !=0:
             window, seqno, msg_type, nxt_msg = self.sws(window, seqno, msg_type, nxt_msg)
             window                           = self.swr(window)
         self.infile.close()
