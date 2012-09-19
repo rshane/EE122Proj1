@@ -37,6 +37,9 @@ class Sender(BasicSender.BasicSender):
         else:
             msg = nxt_mess
         while len(window) < WINDOW_SIZE:
+            if DEBUG:
+                import pdb; pdb.set_trace()                                
+
             if  msg_type != 'end':
                 next_msg  = self.infile.read(MSG_SIZE)
                 msg_type  = 'data'
@@ -48,15 +51,15 @@ class Sender(BasicSender.BasicSender):
                 packet        = self.make_packet(msg_type,seqno,msg)
                 window[seqno] = packet
                 seqno         = seqno + 1
+                msg = next_msg
                 if msg_type == 'end':
                     break
-                msg = next_msg
                 
         for key in window:
             packet = window[key]
             self.send(packet)
 
-        return window, seqno, msg_type, next_msg
+        return window, seqno, msg_type, msg
     
     def swr(self, win): # sliding window receive
         window   = win
@@ -83,8 +86,6 @@ class Sender(BasicSender.BasicSender):
         ele      = 0
         msg_type = nxt_msg = None
         
-        if DEBUG:
-            import pdb; pdb.set_trace()                                
         while msg_type != 'end':
             window, seqno, msg_type, nxt_msg = self.sws(window, seqno, msg_type, nxt_msg)
             window                           = self.swr(window)
