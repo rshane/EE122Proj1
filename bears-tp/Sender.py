@@ -101,9 +101,8 @@ class Sender(BasicSender.BasicSender):
         seqno    = 0
         ele      = 0
         msg_type = nxt_msg = None
-        if DEBUG:
-            import pdb; pdb.set_trace();
-        while msg_type != 'end' or len(window) != 0:
+        
+        while msg_type !='end' or len(window) !=0:
             window, seqno, msg_type, nxt_msg = self.sws(window, seqno, msg_type, nxt_msg)
             window                           = self.swr(window)
         self.infile.close()
