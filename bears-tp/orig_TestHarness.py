@@ -15,15 +15,10 @@ you want to run. The tests automatically register themselves with the
 forwarder, so they will magically be run.
 """
 def tests_to_run(forwarder):
-    from tests import BasicTest, RandomDropTest
-    from tests import RandomCorruptTest, RandomReorderTest, RandomDelayTest
-    from tests import RandomDuplicateTest
-    BasicTest.BasicTest(forwarder, "README")
-    RandomDropTest.RandomDropTest(forwarder, "README")
-    RandomCorruptTest.RandomCorruptTest(forwarder, "README")   #need to fix
-    RandomReorderTest.RandomReorderTest(forwarder, "README")
-    RandomDelayTest.RandomDelayTest(forwarder, "README")
-    RandomDuplicateTest.RandomDuplicateTest(forwarder, "README") #retest later
+    from tests import BasicTest, RandomDropTest, CorruptTest
+#    BasicTest.BasicTest(forwarder, "README")
+#    RandomDropTest.RandomDropTest(forwarder, "README")
+    CorruptTest.CorruptTest(forwarder, "README")
 
 """
 Testing is divided into two pieces: this forwarder and a set of test cases in
@@ -61,7 +56,7 @@ class Forwarder(object):
     """
     The packet forwarder for testing
     """
-    def __init__(self, sender_path, receiver_path, port, debug, debugR):
+    def __init__(self, sender_path, receiver_path, port):
         if not os.path.exists(sender_path):
             raise ValueError("Could not find sender path: %s" % sender_path)
         self.sender_path = sender_path
@@ -90,9 +85,6 @@ class Forwarder(object):
         self.sender_addr = None
         self.receiver_addr = None
 
-        self.debug = debug
-        self.debugR = debugR
-
     def _tick(self):
         """
         Every tick, we call the tick handler for the current test, then we
@@ -114,13 +106,8 @@ class Forwarder(object):
 
     def execute_tests(self):
         for t in self.tests:
-            print t.myname+": Test start!"                         #
-            start_time = time.time()                               #
-            self.sent_packets = 0
             self.current_test = t
             self.start()
-            print "Time used: " + str(time.time() - start_time)    #
-            print "Sent packets: %d" % self.sent_packets          #
 
     def handle_receive(self, message, address):
         """
@@ -148,7 +135,6 @@ class Forwarder(object):
                 p = Packet(message, self.sender_addr, self.start_seqno_base)
             elif address == self.sender_addr:
                 p = Packet(message, self.receiver_addr, self.start_seqno_base)
-                self.sent_packets += 1
             else:
                 # Ignore packets from unknown sources
                 return
@@ -161,28 +147,12 @@ class Forwarder(object):
         self.receiver_addr = ('127.0.0.1', self.receiver_port)
         self.recv_outfile = "127.0.0.1.%d" % self.port
 
-        self.in_queue = []
-        self.out_queue = []
-
-        if self.debugR:
-            receiver = subprocess.Popen(["python", self.receiver_path,
-                                         "-p", str(self.receiver_port),
-                                         "-d"])
-        else:
-            receiver = subprocess.Popen(["python", self.receiver_path,
-                                         "-p", str(self.receiver_port)])
-        
+        receiver = subprocess.Popen(["python", self.receiver_path,
+                                     "-p", str(self.receiver_port)])
         time.sleep(0.2) # make sure the receiver is started first
-        
-        if self.debug:
-            sender = subprocess.Popen(["python", self.sender_path,
-                                       "-f", self.tests[self.current_test],
-                                       "-p", str(self.port),
-                                       "-d"])
-        else:
-            sender = subprocess.Popen(["python", self.sender_path,
-                                       "-f", self.tests[self.current_test],
-                                       "-p", str(self.port)])
+        sender = subprocess.Popen(["python", self.sender_path,
+                                   "-f", self.tests[self.current_test],
+                                   "-p", str(self.port)])
         try:
             start_time = time.time()
             while sender.poll() is None:
@@ -203,17 +173,6 @@ class Forwarder(object):
             if sender.poll() is None:
                 sender.kill()
             receiver.kill()
-
-            # clear out everything else in the socket buffer before we end
-            timeout = self.sock.gettimeout()
-            try:
-                self.sock.settimeout(0)
-                while True:
-                    m, a = self.sock.recvfrom(4096)
-            except socket.error:
-                pass
-            finally:
-                self.sock.settimeout(timeout)
 
         if not os.path.exists(self.recv_outfile):
           raise RuntimeError("No data received by receiver!")
@@ -261,7 +220,7 @@ class Packet(object):
             if data == None:
                 data = self.data
 
-            if msg_type == "ack" and not (data and len(str(data)) > 0): # doesn't have a data field, so handle separately
+            if msg_type == "ack": # doesn't have a data field, so handle separately
                 body = "%s|%d|" % (msg_type, seqno)
                 checksum_body = "%s|%d|" % (msg_type, seqno + self.start_seqno_base)
             else:
@@ -293,13 +252,11 @@ if __name__ == "__main__":
         print "-p PORT | --port PORT Base port value (default: 33123)"
         print "-s SENDER | --sender SENDER The path to Sender implementation (default: Sender.py)"
         print "-r RECEIVER | --receiver RECEIVER The path to the Receiver implementation (default: Receiver.py)"
-        print "-d DEBUG | --debug DEBUG Print debug messages (default: False)"
-        print "-e DEBUGR | --debugReceiver DEBUGR Print debug messages (default: False)"
         print "-h | --help Print this usage message"
 
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                                "p:s:r:de", ["port=", "sender=", "receiver=", "debug=", "debugReceiver="])
+                                "p:s:r:", ["port=", "sender=", "receiver="])
     except:
         usage()
         exit()
@@ -307,8 +264,6 @@ if __name__ == "__main__":
     port = 33123
     sender = "Sender.py"
     receiver = "Receiver.py"
-    debug = False
-    debugR = False
 
     for o,a in opts:
         if o in ("-p", "--port"):
@@ -317,12 +272,7 @@ if __name__ == "__main__":
             sender = a
         elif o in ("-r", "--receiver"):
             receiver = a
-        elif o in ("-d", "--debug"):
-            debug = True
-        elif o in ("-e", "--debugReceiver"):
-            debugR = True
 
-    f = Forwarder(sender, receiver, port, debug, debugR)
+    f = Forwarder(sender, receiver, port)
     tests_to_run(f)
     f.execute_tests()
-

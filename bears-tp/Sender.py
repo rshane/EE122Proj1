@@ -40,7 +40,6 @@ class Sender(BasicSender.BasicSender):
             msg = nxt_mess
         while len(window) < WINDOW_SIZE and msg_type !='end':
            
-           # if  msg_type != 'end': #can take out
             next_msg  = self.infile.read(MSG_SIZE)
             msg_type  = 'data'
             if seqno == 0:
@@ -78,7 +77,11 @@ class Sender(BasicSender.BasicSender):
         for i in range(WINDOW_SIZE):  
             res = self.receive(TIMEOUT)
             if res != None: 
-                response = res
+                if DEBUG:
+                    import pdb; pdb.set_trace()                                
+                valid_packet = self.handle_response(res)
+                if valid_packet:
+                    response = res
         if response != None:
             res_type, res_no, res_msg, res_chk = self.split_packet(response)
             res_no = int(res_no) 
@@ -89,8 +92,8 @@ class Sender(BasicSender.BasicSender):
                 for i in range(res_no):
                     if i in window:
                         packet = window[i]
-                        if self.handle_response(packet):
-                            del window[i]
+                        del window[i]
+                
         return window
                         
         

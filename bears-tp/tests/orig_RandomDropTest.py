@@ -11,10 +11,6 @@ method -- this gives you an example of how to extend the basic test case to
 create your own.
 """
 class RandomDropTest(BasicTest):
-    def __init__(self, forwarder, input_file):
-        BasicTest.__init__(self, forwarder, input_file)
-        self.myname = "RandomDropTest"
-
     def handle_packet(self):
         for p in self.forwarder.in_queue:
             if random.choice([True, False]):
