@@ -1,11 +1,11 @@
 from BasicTest import *
 
 DROP_NO = 200
-#drops the first several hundred packets, but low enough number that it shouldn't timeout
+#drops the first several hundred packets, but low enough number that it shouldn't timeout given good network conditions
 
-countdown = DROP_NO
 
 class DropFirstPacketsTest(BasicTest):
+    countdown = DROP_NO
     def handle_packet(self):
         for p in self.forwarder.in_queue:
             if countdown < 0:
