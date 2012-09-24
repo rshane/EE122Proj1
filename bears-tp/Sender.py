@@ -68,20 +68,22 @@ class Sender(BasicSender.BasicSender):
             self.send(packet)
 
         return window, seqno, msg_type, msg
-    
+
+
     def swr(self, win): # sliding window receive
         window   = win
+        uncorr_pac = 0    
+
         response = None   # COULD THERE BE A CASE WHERE RESPONSE IS NONE?????
         for i in range(WINDOW_SIZE):  
             res = self.receive(TIMEOUT)
-            if res != None: 
+
+            if res != None and not uncorr_pac: 
                 valid_packet = self.handle_response(res)
-                if not valid_packet:
-                    if DEBUG:
-                        import pdb; pdb.set_trace()                                
-                    test = res
                 if valid_packet:
                     response = res
+                else:
+                    uncorr_pac = 1                   
         if response != None:
             res_type, res_no, res_msg, res_chk = self.split_packet(response)
             res_no = int(res_no) 
