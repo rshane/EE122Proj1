@@ -21,9 +21,9 @@ def tests_to_run(forwarder):
 #    BasicTest.BasicTest(forwarder, "README")
 #    RandomDropTest.RandomDropTest(forwarder, "README")
 #    RandomCorruptTest.RandomCorruptTest(forwarder, "README")   #need to fix                                                                                                                                      
- #   RandomReorderTest.RandomReorderTest(forwarder, "README")
- #   RandomDelayTest.RandomDelayTest(forwarder, "README")
- #   RandomDuplicateTest.RandomDuplicateTest(forwarder, "README") #retest later      
+#    RandomReorderTest.RandomReorderTest(forwarder, "README")
+#    RandomDelayTest.RandomDelayTest(forwarder, "README")
+#    RandomDuplicateTest.RandomDuplicateTest(forwarder, "README") #retest later      
 #    BasicTest.BasicTest(forwarder, "README")
 #    RandomDropTest.RandomDropTest(forwarder, "README")
     CorruptTest.CorruptTest(forwarder, "README")
