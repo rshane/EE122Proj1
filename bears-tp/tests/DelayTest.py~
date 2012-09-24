@@ -1,0 +1,9 @@
+import random
+from time import sleep
+from BasicTest import *
+
+#This test delays every transmission by 100 ms... how rude.
+
+class DelayTest(BasicTest):
+    def handle_packet(self):
+        for p in self.forwarder.in_queue
