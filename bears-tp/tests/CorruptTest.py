@@ -6,7 +6,7 @@ from BasicTest import *
 DEBUG = 0
 
 """
-This tests random packet corruption and zombie hordes
+This tests random packet corruption
 """
 
 class CorruptTest(BasicTest):
