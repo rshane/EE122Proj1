@@ -22,10 +22,12 @@ class Sender(BasicSender.BasicSender):
     # Main sending loop.
     def handle_response(self,response_packet):
         if Checksum.validate_checksum(response_packet):
-            print "recv: %s "  % response_packet
+            if DEBUG:
+                print "recv: %s "  % response_packet
             return 1
         else:
-            print "recv: %s <--- CHECKSUM FAILED" % response_packet
+            if DEBUG:
+                print "recv: %s <--- CHECKSUM FAILED" % response_packet
             return False
     def sws(self, win, seqnum, mess_t, nxt_mess): #sliding window send
         window   = win
@@ -51,8 +53,6 @@ class Sender(BasicSender.BasicSender):
                 print "windowkeys: " + str(window.keys())
                 print "seqno: "       + str(seqno)
                 print "msg_type: "    + msg_type
-                     
-                #import pdb; pdb.set_trace()                                
 
             seqno         = seqno + 1
             msg = next_msg
