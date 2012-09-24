@@ -1,5 +1,6 @@
 import random
 import BasicSender
+from BasicSender import *
 from BasicTest import *
 
 """
@@ -7,10 +8,14 @@ This tests random packet corruption and zombie hordes
 """
 
 class CorruptTest(BasicTest):
-    def handle_packets(self):
+    def handle_packet(self):
         for p in self.forwarder.in_queue:
-            if random.choice([True, False]):
-                p.update_packet(data="Sweet Baby Ray's", update_checksum=False)
+            p_type = p.msg_type
+            p_no = p.seqno
+            
+            if random.choice([True, True]):
+                p.update_packet(msg_type=p_type, seqno=p_no, data='corrupt', full_packet=p,  update_checksum=False)
+                self.forwarder.out_queue.append(p)
             else:
                 self.forwarder.out_queue.append(p)
         #empty out in_queue

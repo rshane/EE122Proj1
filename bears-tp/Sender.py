@@ -5,7 +5,7 @@ import Checksum
 import BasicSender
 
 TIMEOUT     = 0.5 # in seconds
-DEBUG       = 0
+DEBUG       = 1
 MSG_SIZE    = 500 # in bytes
 WINDOW_SIZE = 5
 '''
@@ -22,12 +22,12 @@ class Sender(BasicSender.BasicSender):
     # Main sending loop.
     def handle_response(self,response_packet):
         if Checksum.validate_checksum(response_packet):
-            if DEBUG:
-                print "recv: %s" % response_packet
+#            if DEBUG:
+            print "recv: %s "  % response_packet
             return 1
         else:
-            if DEBUG:
-                print "recv: %s <--- CHECKSUM FAILED" % response_packet
+#            if DEBUG:
+            print "recv: %s <--- CHECKSUM FAILED" % response_packet
             return 0
     def sws(self, win, seqnum, mess_t, nxt_mess): #sliding window send
         window   = win
@@ -77,9 +77,11 @@ class Sender(BasicSender.BasicSender):
         for i in range(WINDOW_SIZE):  
             res = self.receive(TIMEOUT)
             if res != None: 
-                if DEBUG:
-                    import pdb; pdb.set_trace()                                
                 valid_packet = self.handle_response(res)
+                if not valid_packet:
+                    if DEBUG:
+                        import pdb; pdb.set_trace()                                
+                        test = res
                 if valid_packet:
                     response = res
         if response != None:

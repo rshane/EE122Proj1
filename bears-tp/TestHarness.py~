@@ -16,9 +16,17 @@ forwarder, so they will magically be run.
 """
 def tests_to_run(forwarder):
     from tests import BasicTest, RandomDropTest, CorruptTest
+    from tests import RandomCorruptTest, RandomReorderTest, RandomDelayTest
+    from tests import RandomDuplicateTest
     BasicTest.BasicTest(forwarder, "README")
     RandomDropTest.RandomDropTest(forwarder, "README")
-    CorruptTest.CorruptTest(forwarder, "README")
+    RandomCorruptTest.RandomCorruptTest(forwarder, "README")   #need to fix                                                                                                                                      
+    RandomReorderTest.RandomReorderTest(forwarder, "README")
+    RandomDelayTest.RandomDelayTest(forwarder, "README")
+    RandomDuplicateTest.RandomDuplicateTest(forwarder, "README") #retest later      
+#    BasicTest.BasicTest(forwarder, "README")
+#    RandomDropTest.RandomDropTest(forwarder, "README")
+#    CorruptTest.CorruptTest(forwarder, "README")
 
 """
 Testing is divided into two pieces: this forwarder and a set of test cases in

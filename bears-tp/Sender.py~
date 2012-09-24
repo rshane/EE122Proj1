@@ -5,7 +5,7 @@ import Checksum
 import BasicSender
 
 TIMEOUT     = 0.5 # in seconds
-DEBUG       = 1
+DEBUG       = 0
 MSG_SIZE    = 500 # in bytes
 WINDOW_SIZE = 5
 '''
@@ -80,8 +80,8 @@ class Sender(BasicSender.BasicSender):
                 if DEBUG:
                     import pdb; pdb.set_trace()                                
                 valid_packet = self.handle_response(res)
-                if valid_packet:
-                    response = res
+             #   if valid_packet:
+                response = res
         if response != None:
             res_type, res_no, res_msg, res_chk = self.split_packet(response)
             res_no = int(res_no) 

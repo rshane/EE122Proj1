@@ -21,7 +21,6 @@ class BasicTest(object):
             raise ValueError("Could not find input file: %s" % input_file)
         self.input_file = input_file
         self.forwarder.register_test(self, self.input_file)
-        self.myname = "BasicTest"
 
     def handle_packet(self):
         """
@@ -69,10 +68,10 @@ class BasicTest(object):
         if not os.path.exists(receiver_outfile):
             raise ValueError("No such file %s" % str(receiver_outfile))
         if self.files_are_the_same(self.input_file, receiver_outfile):
-            print self.myname + ": Test passes!"
+            print "Test passes! %s" % self.__class__.__name__
             return True
         else:
-            print self.myname + ": Test fails: original file doesn't match received. :("
+            print "Test fails: original file doesn't match received. :("
             return False
 
     # Utility methods -- not necessary, just helpful for writing tests
