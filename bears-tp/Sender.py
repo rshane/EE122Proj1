@@ -83,7 +83,8 @@ class Sender(BasicSender.BasicSender):
                 if valid_packet:
                     response = res
                 else:
-                    uncorr_pac = 1                   
+                    uncorr_pac = 1
+                    break
         if response != None:
             res_type, res_no, res_msg, res_chk = self.split_packet(response)
             res_no = int(res_no) 

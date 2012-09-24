@@ -1,5 +1,5 @@
 import random
-from time import sleep
+import time
 from BasicTest import *
 
 DELAY_TIME = 0.1
@@ -11,4 +11,4 @@ class DelayTest(BasicTest):
         for p in self.forwarder.in_queue:
             time.sleep(DELAY_TIME)
             self.forwarder.out_queue.append(p)
-        self.forwarder.out_queue=[]
+        self.forwarder.in_queue=[]
