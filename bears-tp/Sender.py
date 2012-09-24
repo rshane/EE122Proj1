@@ -6,7 +6,7 @@ import BasicSender
 
 TIMEOUT     = 0.5 # in seconds
 DEBUG       = 0
-MSG_SIZE    = 500 # in bytes
+MSG_SIZE    = 1472 # in bytes
 WINDOW_SIZE = 5
 '''
 This is a skeleton sender class. Create a fantastic transport protocol here.

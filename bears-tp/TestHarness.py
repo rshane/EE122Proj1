@@ -18,11 +18,10 @@ def tests_to_run(forwarder):
     from tests import BasicTest, RandomDropTest, CorruptTest
     from tests import RandomCorruptTest, RandomReorderTest, RandomDelayTest
     from tests import RandomDuplicateTest
-#    BasicTest.BasicTest(forwarder, "README")
-#    RandomDropTest.RandomDropTest(forwarder, "README")
-#    RandomCorruptTest.RandomCorruptTest(forwarder, "README")   #need to fix                                                                                                                                      
-#    RandomReorderTest.RandomReorderTest(forwarder, "README")
-#    RandomDelayTest.RandomDelayTest(forwarder, "README")
+    BasicTest.BasicTest(forwarder, "README")
+    RandomDropTest.RandomDropTest(forwarder, "README")
+    RandomReorderTest.RandomReorderTest(forwarder, "README")
+    RandomDelayTest.RandomDelayTest(forwarder, "README")
 #    RandomDuplicateTest.RandomDuplicateTest(forwarder, "README") #retest later      
 #    BasicTest.BasicTest(forwarder, "README")
 #    RandomDropTest.RandomDropTest(forwarder, "README")
