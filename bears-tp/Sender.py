@@ -80,7 +80,6 @@ class Sender(BasicSender.BasicSender):
 
     def swr(self, win): # sliding window receive
         window   = win
-        uncorr_pac = 0    
 
         response = None   # COULD THERE BE A CASE WHERE RESPONSE IS NONE?????
         for i in range(WINDOW_SIZE):  
