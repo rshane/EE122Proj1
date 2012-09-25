@@ -4,14 +4,117 @@ import getopt
 import Checksum
 import BasicSender
 
+TIMEOUT     = 0.5 # in seconds
+DEBUG       = 0
+MSG_SIZE    = 1472 # in bytes
+WINDOW_SIZE = 5
 '''
 This is a skeleton sender class. Create a fantastic transport protocol here.
 '''
+# 500ms retransmission timer if no ack
+# window size of 5 packets
+# should be able to send image file
+# Any packets with invalid checksum should be ignored
+# don't produce console output
+# Make a README.txt file
+
 class Sender(BasicSender.BasicSender):
     # Main sending loop.
+    def handle_response(self,response_packet):
+        if Checksum.validate_checksum(response_packet):
+            if DEBUG:
+                print "recv: %s "  % response_packet
+            return 1
+        else:
+            if DEBUG:
+                print "recv: %s <--- CHECKSUM FAILED" % response_packet
+            return False
+
+    def sws(self, win, seqnum, mess_t, nxt_mess): #sliding window send
+        window   = win
+        seqno    = seqnum # 0
+        msg_type = mess_t
+        next_msg = None
+        if nxt_mess == None:
+            msg = self.infile.read(MSG_SIZE)
+        else:
+            msg = nxt_mess
+        keep_sending = 0
+        if len(window) == 0:
+            keep_sending = 1
+
+        while len(window) < WINDOW_SIZE and msg_type !='end':
+           
+            next_msg  = self.infile.read(MSG_SIZE)
+            msg_type  = 'data'
+            if seqno == 0:
+                msg_type = 'start'
+            elif next_msg == "":
+                msg_type  = 'end'
+
+            packet        = self.make_packet(msg_type,seqno,msg)
+            window[seqno] = packet
+            if keep_sending:
+                self.send(packet)
+
+            if DEBUG:
+                print "windowkeys: " + str(window.keys())
+                print "seqno: "       + str(seqno)
+                print "msg_type: "    + msg_type
+
+            seqno         = seqno + 1
+            msg = next_msg
+            if msg_type == 'end':
+                break
+
+        if not keep_sending:
+            for key in window:
+                packet = window[key]
+                if DEBUG:
+                    print "SENDING"
+                    print "packet_num:" + str(key)
+
+                self.send(packet)
+
+        return window, seqno, msg_type, msg
+
+    def swr(self, win, t_win): # sliding window receive
+        window   = win
+
+        response = None   # COULD THERE BE A CASE WHERE RESPONSE IS NONE?????
+        for i in range(WINDOW_SIZE):  
+            res = self.receive(TIMEOUT)
+
+            if res != None: 
+                valid_packet = self.handle_response(res)
+                if valid_packet:
+                    response = res
+        if response != None:
+            res_type, res_no, res_msg, res_chk = self.split_packet(response)
+
+            res_no = int(res_no) 
+            if DEBUG:
+                print "ReceivedUpTo: " + str(res_no - 1)
+
+            if res_type == 'ack':
+                for i in range(res_no):
+                    if i in window:
+                        packet = window[i]
+                        del window[i]
+                
+        return window
+                        
     def start(self):
+        window   = {}
+        seqno    = 0
+        ele      = 0
+        msg_type = nxt_msg = None
         
-        raise NotImplementedError
+        while msg_type !='end' or len(window) !=0:
+            window, seqno, msg_type, nxt_msg = self.sws(window, seqno, msg_type, nxt_msg)
+            window                           = self.swr(window)
+        self.infile.close
+
 
 '''
 This will be run if you run this script from the command line. You should not

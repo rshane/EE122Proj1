@@ -20,17 +20,17 @@ def tests_to_run(forwarder):
     from tests import RandomDuplicateTest
     from tests import DelayTest, DropFirstPacketsTest, DropStartAckTest
     from tests import NonAckTest, StartAndEndTest
-    BasicTest.BasicTest(forwarder, "README")
-    RandomDropTest.RandomDropTest(forwarder, "README")
-    RandomReorderTest.RandomReorderTest(forwarder, "README")
-    RandomDelayTest.RandomDelayTest(forwarder, "README")
+#   BasicTest.BasicTest(forwarder, "README")
+#  RandomDropTest.RandomDropTest(forwarder, "README")
+# RandomReorderTest.RandomReorderTest(forwarder, "README")
+#    RandomDelayTest.RandomDelayTest(forwarder, "README")
     RandomDuplicateTest.RandomDuplicateTest(forwarder, "README") #retest later      
     DelayTest.DelayTest(forwarder, "README")
     DropFirstPacketsTest.DropFirstPacketsTest(forwarder, "README")
-    DropStartAckTest.DropStartAckTest(forwarder, "README")
-    NonAckTest.NonAckTest(forwarder, "README")
+#    DropStartAckTest.DropStartAckTest(forwarder, "README")
+#    NonAckTest.NonAckTest(forwarder, "README")
     StartAndEndTest.StartAndEndTest(forwarder, "README")
-    CorruptTest.CorruptTest(forwarder, "README")
+#    CorruptTest.CorruptTest(forwarder, "README")
 
 """
 Testing is divided into two pieces: this forwarder and a set of test cases in
