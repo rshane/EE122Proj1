@@ -29,6 +29,7 @@ class Sender(BasicSender.BasicSender):
             if DEBUG:
                 print "recv: %s <--- CHECKSUM FAILED" % response_packet
             return False
+
     def sws(self, win, seqnum, mess_t, nxt_mess): #sliding window send
         window   = win
         seqno    = seqnum # 0
@@ -77,7 +78,6 @@ class Sender(BasicSender.BasicSender):
 
         return window, seqno, msg_type, msg
 
-
     def swr(self, win): # sliding window receive
         window   = win
         uncorr_pac = 0    
@@ -104,9 +104,6 @@ class Sender(BasicSender.BasicSender):
                 
         return window
                         
-        
-    
-
     def start(self):
         window   = {}
         seqno    = 0
@@ -116,36 +113,7 @@ class Sender(BasicSender.BasicSender):
         while msg_type !='end' or len(window) !=0:
             window, seqno, msg_type, nxt_msg = self.sws(window, seqno, msg_type, nxt_msg)
             window                           = self.swr(window)
-        self.infile.close()
-                # if DEBUG:
-                #     print "sent: %s" % packet
-
-
-            #for array append any new packet set while loop limit to window size, then remove any proper acks
-            #recv: ack|12|1621908066            
-
-#----------Need to figure out how receiver accept many packets-----------        
-'''
-        if response != None:
-            response_type = response[0]
-            response_no = response[1]
-
-        valid = self.handle_response(response)
-
-        # Send every TIMEOUT until ACK is received
-        # only stop go; CHECK SEQNO OF RESPONSE
-        # AND PACKETS IN ORDER
-        
-        while not valid or response == None:
-            self.send(packet)
-            response = self.receive(TIMEOUT)
-            valid = self.handle_response(response)
-            
-        msg = next_msg
-        seqno += 1
-'''                
-
-
+        self.infile.close
 
 
 '''

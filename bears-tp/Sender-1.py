@@ -29,7 +29,7 @@ class Sender(BasicSender.BasicSender):
             if DEBUG:
                 print "recv: %s <--- CHECKSUM FAILED" % response_packet
             return False
-    def sws(self, win, seqnum, mess_t, nxt_mess): #sliding window send
+    def sws(self, win, time_win, seqnum, mess_t, nxt_mess): #sliding window send
         window   = win
         seqno    = seqnum # 0
         msg_type = mess_t
@@ -78,16 +78,18 @@ class Sender(BasicSender.BasicSender):
         return window, seqno, msg_type, msg
 
 
-    def swr(self, win): # sliding window receive
-        window   = win
-        uncorr_pac = 0    
+    def swr(self, win, time_win, t_out): # sliding window receive
+        window     = win
+        time_w     = time_win
 
         response = None   # COULD THERE BE A CASE WHERE RESPONSE IS NONE?????
         for i in range(WINDOW_SIZE):  
-            res = self.receive(TIMEOUT)
-
+            if len(time_win) == 0:
+                res = self.receive(t_out)
+            
             if res != None: 
                 valid_packet = self.handle_response(res)
+                res_type, res_no, res_msg, res_chk = self.split_packet(response)
                 if valid_packet:
                     response = res
         if response != None:
@@ -102,57 +104,28 @@ class Sender(BasicSender.BasicSender):
                         packet = window[i]
                         del window[i]
                 
-        return window
-                        
-        
-    
+        return window, time_w, t_out
 
     def start(self):
         window   = {}
+        time_win = {}
+        tout     = TIMEOUT
         seqno    = 0
         ele      = 0
         msg_type = nxt_msg = None
-        
+                
         while msg_type !='end' or len(window) !=0:
-            window, seqno, msg_type, nxt_msg = self.sws(window, seqno, msg_type, nxt_msg)
-            window                           = self.swr(window)
-        self.infile.close()
-                # if DEBUG:
-                #     print "sent: %s" % packet
-
-
-            #for array append any new packet set while loop limit to window size, then remove any proper acks
-            #recv: ack|12|1621908066            
-
-#----------Need to figure out how receiver accept many packets-----------        
-'''
-        if response != None:
-            response_type = response[0]
-            response_no = response[1]
-
-        valid = self.handle_response(response)
-
-        # Send every TIMEOUT until ACK is received
-        # only stop go; CHECK SEQNO OF RESPONSE
-        # AND PACKETS IN ORDER
-        
-        while not valid or response == None:
-            self.send(packet)
-            response = self.receive(TIMEOUT)
-            valid = self.handle_response(response)
-            
-        msg = next_msg
-        seqno += 1
-'''                
-
-
-
+            window, time_win, seqno, msg_type, nxt_msg = self.sws(window, time_win, 
+                                                        seqno, msg_type, nxt_msg)
+            window, time_win, tout                      = self.swr(window, time_win, tout)
+        self.infile.close()          
 
 '''
 This will be run if you run this script from the command line. You should not
 change any of this; the grader may rely on the behavior here to test your
 submission.
 '''
+
 if __name__ == "__main__":
     def usage():
         print "BEARS-TP Sender"
