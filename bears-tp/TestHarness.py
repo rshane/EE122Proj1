@@ -25,7 +25,6 @@ def tests_to_run(forwarder):
     RandomReorderTest.RandomReorderTest(forwarder, "README")
     RandomDelayTest.RandomDelayTest(forwarder, "README")
     RandomDuplicateTest.RandomDuplicateTest(forwarder, "README") #retest later      
-    RandomDropTest.RandomDropTest(forwarder, "README")
     DelayTest.DelayTest(forwarder, "README")
     DropFirstPacketsTest.DropFirstPacketsTest(forwarder, "README")
     DropStartAckTest.DropStartAckTest(forwarder, "README")

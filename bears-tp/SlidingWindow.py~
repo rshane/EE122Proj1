@@ -5,7 +5,7 @@ import Checksum
 import BasicSender
 
 TIMEOUT     = 0.5 # in seconds
-DEBUG       = 1
+DEBUG       = 0
 MSG_SIZE    = 1472 # in bytes
 WINDOW_SIZE = 5
 '''
@@ -41,7 +41,6 @@ class Sender(BasicSender.BasicSender):
         keep_sending = 0
         if len(window) == 0:
             keep_sending = 1
-
         while len(window) < WINDOW_SIZE and msg_type !='end':
            
             next_msg  = self.infile.read(MSG_SIZE)
@@ -55,7 +54,7 @@ class Sender(BasicSender.BasicSender):
             window[seqno] = packet
             if keep_sending:
                 self.send(packet)
-
+            
             if DEBUG:
                 print "windowkeys: " + str(window.keys())
                 print "seqno: "       + str(seqno)
@@ -86,10 +85,13 @@ class Sender(BasicSender.BasicSender):
         for i in range(WINDOW_SIZE):  
             res = self.receive(TIMEOUT)
 
-            if res != None: 
+            if res != None and not uncorr_pac: 
                 valid_packet = self.handle_response(res)
                 if valid_packet:
                     response = res
+                else:
+                    uncorr_pac = 1
+                    break
         if response != None:
             res_type, res_no, res_msg, res_chk = self.split_packet(response)
             res_no = int(res_no) 

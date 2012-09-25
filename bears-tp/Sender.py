@@ -38,6 +38,10 @@ class Sender(BasicSender.BasicSender):
             msg = self.infile.read(MSG_SIZE)
         else:
             msg = nxt_mess
+        keep_sending = 0
+        if len(window) == 0:
+            keep_sending = 1
+
         while len(window) < WINDOW_SIZE and msg_type !='end':
            
             next_msg  = self.infile.read(MSG_SIZE)
@@ -49,6 +53,9 @@ class Sender(BasicSender.BasicSender):
 
             packet        = self.make_packet(msg_type,seqno,msg)
             window[seqno] = packet
+            if keep_sending:
+                self.send(packet)
+
             if DEBUG:
                 print "windowkeys: " + str(window.keys())
                 print "seqno: "       + str(seqno)
@@ -58,14 +65,15 @@ class Sender(BasicSender.BasicSender):
             msg = next_msg
             if msg_type == 'end':
                 break
-                
-        for key in window:
-            packet = window[key]
-            if DEBUG:
-                print "SENDING"
-                print "packet_num:" + str(key)
 
-            self.send(packet)
+        if not keep_sending:
+            for key in window:
+                packet = window[key]
+                if DEBUG:
+                    print "SENDING"
+                    print "packet_num:" + str(key)
+
+                self.send(packet)
 
         return window, seqno, msg_type, msg
 
@@ -78,13 +86,10 @@ class Sender(BasicSender.BasicSender):
         for i in range(WINDOW_SIZE):  
             res = self.receive(TIMEOUT)
 
-            if res != None and not uncorr_pac: 
+            if res != None: 
                 valid_packet = self.handle_response(res)
                 if valid_packet:
                     response = res
-                else:
-                    uncorr_pac = 1
-                    break
         if response != None:
             res_type, res_no, res_msg, res_chk = self.split_packet(response)
             res_no = int(res_no) 
