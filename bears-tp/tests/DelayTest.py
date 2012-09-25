@@ -12,11 +12,10 @@ class DelayTest(BasicTest):
     def sin_delay(self):
         curr_time = time()
         ret = (.15 * math.sin(curr_time/2)) + .35
-        print "Calculating delay... " + str(ret)
+        return ret
 
     def handle_packet(self):
         for p in self.forwarder.in_queue:
-            tim=time()
             sleep(self.sin_delay())
             self.forwarder.out_queue.append(p)
         self.forwarder.in_queue=[]
