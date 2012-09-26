@@ -30,9 +30,9 @@ class Sender(BasicSender.BasicSender):
                 print "recv: %s <--- CHECKSUM FAILED" % response_packet
             return False
 
-    def sws(self, win, seqnum, mess_t, nxt_mess): #sliding window send
-        window   = win
+    def sws(self, sent_p, seqnum, mess_t, nxt_mess): #sliding window send
         seqno    = seqnum # 0
+        sent     = sent_p
         msg_type = mess_t
         next_msg = None
         if nxt_mess == None:
@@ -40,49 +40,38 @@ class Sender(BasicSender.BasicSender):
         else:
             msg = nxt_mess
         keep_sending = 0
-        if len(window) == 0:
-            keep_sending = 1
-
-        while len(window) < WINDOW_SIZE and msg_type !='end':
-           
-            next_msg  = self.infile.read(MSG_SIZE)
-            msg_type  = 'data'
-            if seqno == 0:
-                msg_type = 'start'
-            elif next_msg == "":
-                msg_type  = 'end'
-
-            packet        = self.make_packet(msg_type,seqno,msg)
-            window[seqno] = packet
-            if keep_sending:
-                self.send(packet)
-
-            if DEBUG:
-                print "windowkeys: " + str(window.keys())
-                print "seqno: "       + str(seqno)
-                print "msg_type: "    + msg_type
-
-            seqno         = seqno + 1
-            msg = next_msg
-            if msg_type == 'end':
-                break
-
-        if not keep_sending:
-            for key in window:
-                packet = window[key]
+        if len(sent) == 0:
+            while msg_type !='end':
                 if DEBUG:
-                    print "SENDING"
-                    print "packet_num:" + str(key)
+                    print len(sent)
 
+                next_msg  = self.infile.read(MSG_SIZE)
+                msg_type  = 'data'
+                if seqno == 0:
+                    msg_type = 'start'
+                elif next_msg == "":
+                    msg_type  = 'end'
+                        
+                packet        = self.make_packet(msg_type,seqno,msg)
+                sent[seqno]   = packet 
                 self.send(packet)
+                seqno         = seqno + 1
+                msg = next_msg
+                if msg_type == 'end':
+                    break
+            else:
+                while len(sent) > 0:
+                    for key in sent:
+                        packet = sent[key]
+                        self.send(packet)
 
-        return window, seqno, msg_type, msg
+        return  sent, seqno, msg_type, msg
 
-    def swr(self, win): # sliding window receive
-        window   = win
-
+    def swr(self, sent_p): # sliding window receive
+        sent      = sent_p
+        sent_size = len(sent) 
         response = None   # COULD THERE BE A CASE WHERE RESPONSE IS NONE?????
-        for i in range(WINDOW_SIZE):  
+        for i in range(sent_size):  
             res = self.receive(TIMEOUT)
 
             if res != None: 
@@ -97,21 +86,20 @@ class Sender(BasicSender.BasicSender):
 
             if res_type == 'ack':
                 for i in range(res_no):
-                    if i in window:
-                        packet = window[i]
-                        del window[i]
+                    if i in sent:
+                        del sent[i]
                 
-        return window
+        return sent
                         
     def start(self):
-        window   = {}
+        sent   = {}
         seqno    = 0
         ele      = 0
         msg_type = nxt_msg = None
         
-        while msg_type !='end' or len(window) !=0:
-            window, seqno, msg_type, nxt_msg = self.sws(window, seqno, msg_type, nxt_msg)
-            window                           = self.swr(window)
+        while msg_type !='end' or len(sent) !=0:
+            sent, seqno, msg_type, nxt_msg = self.sws(sent, seqno, msg_type, nxt_msg)
+            sent                           = self.swr(sent)
         self.infile.close
 
 

@@ -1,6 +1,6 @@
 import sys
 import getopt
-
+import time
 import Checksum
 import BasicSender
 
@@ -8,6 +8,7 @@ TIMEOUT     = 0.5 # in seconds
 DEBUG       = 0
 MSG_SIZE    = 1472 # in bytes
 WINDOW_SIZE = 5
+GRACE_TIME  = 1.1
 '''
 This is a skeleton sender class. Create a fantastic transport protocol here.
 '''
@@ -29,9 +30,9 @@ class Sender(BasicSender.BasicSender):
             if DEBUG:
                 print "recv: %s <--- CHECKSUM FAILED" % response_packet
             return False
-
-    def sws(self, win, seqnum, mess_t, nxt_mess): #sliding window send
+    def sws(self, win, time_win, seqnum, mess_t, nxt_mess): #sliding window send
         window   = win
+        t_win    = time_win
         seqno    = seqnum # 0
         msg_type = mess_t
         next_msg = None
@@ -55,6 +56,8 @@ class Sender(BasicSender.BasicSender):
             packet        = self.make_packet(msg_type,seqno,msg)
             window[seqno] = packet
             if keep_sending:
+                start_t = time.time()
+                t_win[seqno] = start_t
                 self.send(packet)
 
             if DEBUG:
@@ -62,8 +65,8 @@ class Sender(BasicSender.BasicSender):
                 print "seqno: "       + str(seqno)
                 print "msg_type: "    + msg_type
 
-            seqno         = seqno + 1
-            msg = next_msg
+            seqno = seqno + 1
+            msg   = next_msg
             if msg_type == 'end':
                 break
 
@@ -73,22 +76,36 @@ class Sender(BasicSender.BasicSender):
                 if DEBUG:
                     print "SENDING"
                     print "packet_num:" + str(key)
-
+                start_t    = time.time()
+                t_win[key] = start_t   
                 self.send(packet)
 
-        return window, seqno, msg_type, msg
+        return window, t_win, seqno, msg_type, msg
 
-    def swr(self, win): # sliding window receive
-        window   = win
+
+    def swr(self, win, time_win, time_out): # sliding window receive
+        window     = win
+        time_w     = time_win
+        t_out      = time_out
 
         response = None   # COULD THERE BE A CASE WHERE RESPONSE IS NONE?????
         for i in range(WINDOW_SIZE):  
-            res = self.receive(TIMEOUT)
-
+            res = self.receive(t_out)
+            
             if res != None: 
                 valid_packet = self.handle_response(res)
+                            
                 if valid_packet:
                     response = res
+                    res_type, res_no, res_msg, res_chk = self.split_packet(response)
+                    end_t      = time_w[int(res_no) - 1]
+                    round_trip   = time.time() - end_t
+                    round_trip  *= GRACE_TIME
+                    if round_trip > TIMEOUT:
+                        t_out = TIMEOUT
+                    else:
+                        t_out = round_trip
+
         if response != None:
             res_type, res_no, res_msg, res_chk = self.split_packet(response)
             res_no = int(res_no) 
@@ -98,28 +115,29 @@ class Sender(BasicSender.BasicSender):
             if res_type == 'ack':
                 for i in range(res_no):
                     if i in window:
-                        packet = window[i]
                         del window[i]
                 
-        return window
-                        
+        return window, time_w, t_out
+
     def start(self):
         window   = {}
+        time_win = {}
+        tout     = TIMEOUT
         seqno    = 0
         ele      = 0
         msg_type = nxt_msg = None
-        
+                
         while msg_type !='end' or len(window) !=0:
-            window, seqno, msg_type, nxt_msg = self.sws(window, seqno, msg_type, nxt_msg)
-            window                           = self.swr(window)
-        self.infile.close
-
+            window, time_win, seqno, msg_type, nxt_msg = self.sws(window, time_win, seqno, msg_type, nxt_msg)
+            window, time_win, tout                      = self.swr(window, time_win, tout)
+        self.infile.close()          
 
 '''
 This will be run if you run this script from the command line. You should not
 change any of this; the grader may rely on the behavior here to test your
 submission.
 '''
+
 if __name__ == "__main__":
     def usage():
         print "BEARS-TP Sender"
