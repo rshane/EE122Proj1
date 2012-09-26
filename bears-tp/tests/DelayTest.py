@@ -11,7 +11,7 @@ DELAY_TIME = 0.1
 class DelayTest(BasicTest):
     def sin_delay(self):
         curr_time = time()
-        ret = (.15 * math.sin(curr_time/2)) + .35
+        ret = 0.1 * ((.15 * math.sin(curr_time/2)) + .35)
         return ret
 
     def handle_packet(self):
