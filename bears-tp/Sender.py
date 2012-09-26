@@ -98,7 +98,6 @@ class Sender(BasicSender.BasicSender):
             if res_type == 'ack':
                 for i in range(res_no):
                     if i in window:
-                        packet = window[i]
                         del window[i]
                 
         return window
